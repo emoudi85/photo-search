@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Photo Search">
+<title>Photo Search</title>
+<style>
+:root { --bg: #f4f4f5; --card: #fff; --text: #18181b; --muted: #71717a; --accent: #f97316; --ok: #16a34a; --off: #a1a1aa; }
+@media (prefers-color-scheme: dark) { :root { --bg: #18181b; --card: #27272a; --text: #fafafa; --muted: #a1a1aa; --off: #52525b; } }
+body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0;
+       display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+main { background: var(--card); padding: 26px 22px; border-radius: 14px; width: min(360px, calc(100vw - 32px));
+       box-sizing: border-box; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+h1 { font-size: 22px; margin: 0 0 6px; }
+p { color: var(--muted); margin: 0 0 16px; }
+a.m { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 10px; margin-bottom: 8px;
+      text-decoration: none; color: var(--text); border: 1px solid rgba(127,127,127,.25); }
+a.m.on { border-color: var(--ok); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--off); flex: none; }
+.on .dot { background: var(--ok); }
+.m span:last-child { margin-left: auto; font-size: .85em; color: var(--muted); }
+</style></head><body>
+<main>
+  <h1>Photo Search</h1>
+  <p id="msg">Looking for a computer that's on...</p>
+  <div id="list"></div>
+</main>
+<script>
+// Your computers, in the order you prefer them. The first one that answers is opened.
+const MACHINES = [
+  // { name: "Work server", url: "https://WORK-SERVER-NAME.tail3cede3.ts.net" },  // add once Tailscale is on it
+  { name: "Office PC",   url: "https://ahmad-msi.tail3cede3.ts.net" },
+  { name: "Laptop",      url: "https://ahmadzeph.tail3cede3.ts.net" },
+];
+const TIMEOUT = 5000;
+
+// A computer counts as online when its app hands out its small icon (no password needed for that).
+const probe = (m) => new Promise((resolve) => {
+  const img = new Image();
+  const t = setTimeout(() => { img.src = ""; resolve(false); }, TIMEOUT);
+  img.onload = () => { clearTimeout(t); resolve(true); };
+  img.onerror = () => { clearTimeout(t); resolve(false); };
+  img.src = m.url + "/apple-touch-icon.png?t=" + Date.now();
+});
+
+const list = document.getElementById("list"), msg = document.getElementById("msg");
+const rows = MACHINES.map((m) => {
+  const a = document.createElement("a");
+  a.className = "m"; a.href = m.url + "/";
+  a.innerHTML = '<span class="dot"></span><span></span><span>checking</span>';
+  a.children[1].textContent = m.name;
+  list.appendChild(a);
+  return a;
+});
+
+const results = MACHINES.map(probe);
+results.forEach((p, i) => p.then((ok) => {
+  rows[i].classList.toggle("on", ok);
+  rows[i].lastChild.textContent = ok ? "online" : "offline";
+}));
+
+(async () => {
+  // go to the first computer in preference order that is online, without waiting for slower ones below it
+  for (let i = 0; i < MACHINES.length; i++) {
+    if (await results[i]) {
+      msg.textContent = "Opening " + MACHINES[i].name + "...";
+      location.replace(MACHINES[i].url + "/");
+      return;
+    }
+  }
+  msg.textContent = "None of your computers is online right now. Turn one on and start the app, then reload this page.";
+})();
+</script>
+</body></html>
