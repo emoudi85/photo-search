@@ -46,8 +46,9 @@ const probe = (m) => new Promise((resolve) => {
   img.onload = () => done(true);
   img.onerror = () => done(false);
   img.src = m.url + "/apple-touch-icon.png?t=" + Date.now();
-  fetch(m.url + "/apple-touch-icon.png?f=" + Date.now(), { mode: "no-cors", cache: "no-store" })
-    .then(() => done(true), () => done(false));
+  // only a real answer from the app counts (a Tailscale error page while the app is closed doesn't)
+  fetch(m.url + "/apple-touch-icon.png?f=" + Date.now(), { cache: "no-store" })
+    .then((r) => done(r.ok), () => done(false));
 });
 
 const list = document.getElementById("list"), msg = document.getElementById("msg");
