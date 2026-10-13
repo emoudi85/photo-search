@@ -32,15 +32,22 @@ const MACHINES = [
   { name: "Office PC",   url: "https://ahmad-msi.tail3cede3.ts.net" },
   { name: "Laptop",      url: "https://ahmadzeph.tail3cede3.ts.net" },
 ];
-const TIMEOUT = 5000;
+const TIMEOUT = 12000;
 
-// A computer counts as online when its app hands out its small icon (no password needed for that).
+// A computer counts as online when its app answers for its small icon (no password needed for that).
+// It asks in two ways, since some browsers are fussy about one or the other.
 const probe = (m) => new Promise((resolve) => {
+  let left = 2;
+  const t = setTimeout(() => resolve(false), TIMEOUT);
+  const done = (ok) => {
+    if (ok || --left === 0) { clearTimeout(t); resolve(ok); }
+  };
   const img = new Image();
-  const t = setTimeout(() => { img.src = ""; resolve(false); }, TIMEOUT);
-  img.onload = () => { clearTimeout(t); resolve(true); };
-  img.onerror = () => { clearTimeout(t); resolve(false); };
+  img.onload = () => done(true);
+  img.onerror = () => done(false);
   img.src = m.url + "/apple-touch-icon.png?t=" + Date.now();
+  fetch(m.url + "/apple-touch-icon.png?f=" + Date.now(), { mode: "no-cors", cache: "no-store" })
+    .then(() => done(true), () => done(false));
 });
 
 const list = document.getElementById("list"), msg = document.getElementById("msg");
@@ -68,7 +75,7 @@ results.forEach((p, i) => p.then((ok) => {
       return;
     }
   }
-  msg.textContent = "None of your computers is online right now. Turn one on and start the app, then reload this page.";
+  msg.textContent = "Couldn't confirm a computer is on. Tap one below to try it, or start the app on one and reload.";
 })();
 </script>
 </body></html>
